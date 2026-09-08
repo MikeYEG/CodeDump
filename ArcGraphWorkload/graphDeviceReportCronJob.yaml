@@ -12,7 +12,7 @@ spec:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
 
-  jobTemplate:
+  jobTemplate:              # everything below here describes a Job...
     spec:
       # Two attempts, then stop. A failing Graph call is not going to fix itself
       # by being retried three hundred times.
@@ -21,16 +21,18 @@ spec:
       activeDeadlineSeconds: 600
       ttlSecondsAfterFinished: 3600
 
-      template:
+      template:             # ...and everything below here describes a Pod
         metadata:
           labels:
             # READ THIS ONE CAREFULLY.
             #
-            # This label goes HERE, on the pod template, and nowhere else. Putting it
-            # on the CronJob's own metadata does absolutely nothing: the mutating
-            # webhook watches pod creation, and a CronJob is not a pod. Do that and
-            # the job will run, the container will start, and it will fail on the
-            # first line because AZURE_FEDERATED_TOKEN_FILE was never injected.
+            # There are three metadata blocks in this file and only this one counts.
+            # Workload identity inspects pods as they get created, and a CronJob is
+            # not a pod - it creates Jobs, and a Job creates Pods. This template block
+            # is the only part that describes a pod, so it is the only place the label
+            # does anything. Put it on the CronJob's own metadata and the job runs, the
+            # container starts, and it fails on the first line because
+            # AZURE_FEDERATED_TOKEN_FILE was never injected.
             azure.workload.identity/use: "true"
         spec:
           serviceAccountName: kv-reader

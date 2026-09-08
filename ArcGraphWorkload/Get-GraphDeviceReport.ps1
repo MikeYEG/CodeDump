@@ -4,8 +4,8 @@
     access token using the Entra client assertion flow, then queries Graph.
 
 .DESCRIPTION
-    Runs inside a pod that carries the azure.workload.identity/use label. The
-    workload identity mutating webhook injects:
+    Runs inside a pod that carries the azure.workload.identity/use label. Any pod with
+    that label gets these injected into it automatically:
 
         AZURE_CLIENT_ID           - client id of the user-assigned managed identity
         AZURE_TENANT_ID           - tenant the identity lives in

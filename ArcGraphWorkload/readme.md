@@ -67,9 +67,12 @@ kubectl logs job/graph-device-report-manual -n workload-identity
 ## The one that will catch you out
 
 The `azure.workload.identity/use: "true"` label goes on the **pod template**, not on the CronJob
-or the Job. The mutating webhook watches pod creation, so putting it anywhere else does nothing
-at all - no error, no warning. The job runs, the container starts, and it fails on the first
-line because `AZURE_CLIENT_ID` was never injected.
+or the Job. There are three `metadata` blocks in that file and only one counts. Workload identity
+inspects pods as they get created, and a CronJob isn't a pod - it creates Jobs, and a Job creates
+Pods. The `template:` block at the bottom is the only part that describes a pod, so it is the only
+place the label does anything. Put it anywhere else and you get no error and no warning. The job
+runs, the container starts, and it fails on the first line because `AZURE_CLIENT_ID` was never
+injected.
 
 ## Cleaning up
 

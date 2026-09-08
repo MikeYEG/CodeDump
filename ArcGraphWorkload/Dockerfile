@@ -54,5 +54,5 @@ COPY Get-GraphDeviceReport.ps1 /app/Get-GraphDeviceReport.ps1
 
 # No secret, certificate, connection string or credential file is baked into this
 # image. Everything the workload needs to authenticate is injected at runtime by
-# the workload identity webhook.
+# workload identity when the pod starts.
 ENTRYPOINT ["pwsh", "-NoProfile", "-NonInteractive", "-File", "/app/Get-GraphDeviceReport.ps1"]
