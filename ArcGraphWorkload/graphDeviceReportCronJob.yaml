@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: graph-device-report
+  namespace: workload-identity
+spec:
+  # 07:00 every weekday. Cron here is evaluated in the cluster's timezone.
+  schedule: "0 7 * * 1-5"
+
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      # Two attempts, then stop. A failing Graph call is not going to fix itself
+      # by being retried three hundred times.
+      backoffLimit: 2
+      # Do not let a wedged run sit there until the next schedule.
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 3600
+
+      template:
+        metadata:
+          labels:
+            # READ THIS ONE CAREFULLY.
+            #
+            # This label goes HERE, on the pod template, and nowhere else. Putting it
+            # on the CronJob's own metadata does absolutely nothing: the mutating
+            # webhook watches pod creation, and a CronJob is not a pod. Do that and
+            # the job will run, the container will start, and it will fail on the
+            # first line because AZURE_FEDERATED_TOKEN_FILE was never injected.
+            azure.workload.identity/use: "true"
+        spec:
+          serviceAccountName: kv-reader
+          # Never for a batch workload. OnFailure restarts the container in place and
+          # you lose the logs of the run that failed, which are the logs you wanted.
+          # Never gives you a new pod per attempt and keeps the failed one around.
+          restartPolicy: Never
+          containers:
+            - name: graph-device-report
+              image: arc-graph-workload:1.0.0
+              # The image was side-loaded with k3d image import, so there is nothing
+              # to pull it from. Without this k3s goes looking for it in a registry.
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  memory: 1Gi
+          nodeSelector:
+            kubernetes.io/os: linux
